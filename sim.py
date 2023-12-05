@@ -1,6 +1,3 @@
-# This file is designed to generate a set of students s_i, with size S, and colleges c_i with size C.
-# This file contains all code necessary to generate a set of students s_i with size S and colleges c_i with size C.
-
 import numpy as np
 import math
 from enum import Enum
@@ -41,8 +38,6 @@ class Student():
         self.student_score = student_score
         self.utility_per_college = []
 
-# Run the simulation given the starting parameters
-
 
 def simulate(
     numColleges=10,  # The number of colleges in the simulation
@@ -53,7 +48,9 @@ def simulate(
     is_modified_match=True,
     adversity_max_magnitude=100  # The maximum magnitude of adversity scores
 ):
-    # Generate all colleges
+    # Simulation function for project
+
+    # First, generate all colleges
     college_reputations = np.random.normal(
         loc=50, scale=math.sqrt(15.0), size=numColleges)
     colleges = []
@@ -87,8 +84,6 @@ def simulate(
 def generate_value_per_student(students):
     return [np.random.normal(loc=student.student_score, scale=math.sqrt(5.0)) for student in students]
 
-# Given a mode and a cutoff, use data from students and adversity corr to calculate final adversity score scaling factor.
-
 
 def generate_adversity_score(
     students,  # List of student objects for which to generate adversity scores
@@ -98,6 +93,8 @@ def generate_adversity_score(
     # The income cutoff for adversity scaling factors (above which, no adversity adjustment)
     income_cutoff=150000
 ):
+    # Given a mode and a cutoff, use data from students and adversity corr to calculate final adversity score scaling factor.
+
     scales = []  # Scale takes on some value between 0 and 1
     if (mode == ADVERSITY_FN.INVERSE):
         scales = [2-2(1/(1+np.e**(-students.income/61740)))
