@@ -22,18 +22,18 @@ class ADVERSITY_FN(Enum):
 
 
 class College():
-    def __init__(id, reserve_prop, spots, reputation):
+    def __init__(self, id, reserve_prop, spots, reputation):
         self.id = id
         self.reserve_prop = reserve_prop
         self.spots = spots
         self.reputation = reputation
 
-    def set_preferences(value_per_student):
+    def set_preferences(self, value_per_student):
         self.value_per_student = value_per_student
 
 
 class Student():
-    def __init__(id, income, student_score, utility_per_college):
+    def __init__(self, id, income, student_score, utility_per_college):
         self.id = id
         self.income = income
         self.student_score = student_score
@@ -46,7 +46,7 @@ def simulate(
     reserve_prop=0.2,  # The proportion of spots reserved for disadvantaged students
     spots=5,  # The number of spots available in each college
     # Whether to use the modified matching algorithm [may be removed]
-    is_modified_match=True,
+    is_modified_match=False,
     adversity_max_magnitude=100  # The maximum magnitude of adversity scores
 ):
     # Simulation function for project
@@ -56,6 +56,7 @@ def simulate(
         loc=50, scale=math.sqrt(15.0), size=numColleges)
     colleges = []
     for i in range(numColleges):
+        print(i, reserve_prop, spots, college_reputations[i])
         colleges.append(
             College(i, reserve_prop, spots, college_reputations[i]))
 
@@ -67,8 +68,8 @@ def simulate(
     # Create all student objects
     for (id, income, sat) in zip(range(numStudents), incomes, sat_scores):
         # Generate a value for all colleges
-        utility_arr = [np.random.normal(
-            loc=college.reputation, scale=math.sqrt(2.0)) for college in colleges]
+        utility_arr = np.array([np.random.normal(
+            loc=college.reputation, scale=math.sqrt(2.0)) for college in colleges])
         students.append(Student(id, income, sat, utility_arr))
 
     # Generate college rankings of students
@@ -105,7 +106,7 @@ def generate_adversity_score(
         scales = [(1/((2*student.income/MEDIAN_INCOME)+1))
                   for student in students]
     elif (mode == ADVERSITY_FN.SIGMOID):
-        scales = [2-2(1/(1+np.e**(-2*students.income/MEDIAN_INCOME)))
+        scales = [2-2*(1/(1+np.e**(-2*students.income/MEDIAN_INCOME)))
                   for student in students]
     elif (mode == ADVERSITY_FN.EXPO):
         return [np.random.exponential(scale=MEDIAN_INCOME/student.income)
@@ -151,8 +152,8 @@ def deferred_acceptance(students, schools, minority_reserve_da = False):
     matching_schools = defaultdict(lambda: [])
 
     # Get the preference lists of students and schools
-    students_pref = [np.argsort(-s.utility_per_college) for s in students]
-    schools_pref = [np.argsort(-s.value_per_student) for s in schools]
+    students_pref = [np.argsort(s.utility_per_college) for s in students][::-1]
+    schools_pref = [np.argsort(s.value_per_student) for s in schools][::-1]
 
     # Run the deferred acceptance algorithm (while schools are available)
     while len(avail_students) > 0:
