@@ -102,19 +102,18 @@ def generate_adversity_score(
 
     scales = []  # Scale takes on some value between 0 and 1
     if (mode == ADVERSITY_FN.INVERSE):
-        scales = [2-2(1/(1+np.e**(-students.income/61740)))
+        scales = [(1/((2*student.income/MEDIAN_INCOME)+1))
                   for student in students]
     elif (mode == ADVERSITY_FN.SIGMOID):
-        scales = [2-2(1/(1+np.e**(-students.income/61740)))
+        scales = [2-2(1/(1+np.e**(-2*students.income/MEDIAN_INCOME)))
                   for student in students]
     elif (mode == ADVERSITY_FN.EXPO):
         return [np.random.exponential(scale=MEDIAN_INCOME/student.income)
                 for student in students]
-    elif (mode == ADVERSITY_FN.EXPO):
-        scales = [2-2(1/(1+np.e**(-students.income/61740)))
-                  for student in students]
+    elif (mode == ADVERSITY_FN.EXPONENTIAL):
+        scales = [e ** (2*student.income/61740) for student in students]
     elif (mode == ADVERSITY_FN.LOGARITHMIC):
-        scales = [2-2(1/(1+np.e**(-students.income/61740)))
+        scales = [-math.log((2*student.income/MEDIAN_INCOME)+math.e)+2
                   for student in students]
     final_scales = []
     for (student, scale) in zip(students, scales):

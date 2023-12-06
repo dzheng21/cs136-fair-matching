@@ -48,7 +48,6 @@ def main(args):
                       dest="seed", default=None, type="int",
                       help="seed for random numbers")
 
-
     (options, args) = parser.parse_args()
 
     # leftover args are class names:
@@ -85,27 +84,28 @@ def main(args):
     else:
         num_perms = math.factorial(n)
 
-    av_value=list(range(0,n))
+    av_value = list(range(0, n))
     total_spent = [0 for i in range(n)]
 
-    ##  iters = no. of samples to take
+    # iters = no. of samples to take
     for i in range(options.iters):
         values = get_utils(n, options)
-        logging.info("==== Iteration %d / %d.  Values %s ====" % (i, options.iters, values))
-        ## Create permutations (permutes the random values, and assigns them to agents)
+        logging.info("==== Iteration %d / %d.  Values %s ====" %
+                     (i, options.iters, values))
+        # Create permutations (permutes the random values, and assigns them to agents)
         if approx:
             perms = [shuffled(values) for i in range(options.max_perms)]
         else:
             perms = itertools.permutations(values)
 
         total_rev = 0
-        ## Iterate over permutations
+        # Iterate over permutations
         for vals in perms:
             options.agent_values = list(vals)
             values = dict(list(zip(list(range(n)), list(vals))))
             ##   Runs simulation  ###
             history = sim(options)
-            ###  simulation ends.
+            # simulation ends.
             stats = Stats(history, values)
             # Print stats in console?
             # logging.info(stats)
@@ -116,30 +116,22 @@ def main(args):
             total_rev += stats.total_revenue()
         total_revenues.append(total_rev / float(num_perms))
 
-    ## total_spent = total amount of money spent by agents, for all iterations, all permutations, all rounds
-
+    # total_spent = total amount of money spent by agents, for all iterations, all permutations, all rounds
 
     # Averages are over all the value permutations considered
     N = float(num_perms) * options.iters
     logging.info("%s\t\t%s\t\t%s" % ("#" * 15, "RESULTS", "#" * 15))
     logging.info("")
     for a in range(n):
-        logging.info("Stats for Agent %d, %s" % (a, agents_to_run[a]) )
-        logging.info("Average spend $%.2f (daily)" % (0.01 *total_spent[a]/N)  )
+        logging.info("Stats for Agent %d, %s" % (a, agents_to_run[a]))
+        logging.info("Average spend $%.2f (daily)" % (0.01 * total_spent[a]/N))
         logging.info("Average  utility  $%.2f (daily)" % (0.01 * totals[a]/N))
         logging.info("-" * 40)
         logging.info("\n")
     m = mean(total_revenues)
     std = stddev(total_revenues)
-    logging.warning("Average daily revenue (stddev): $%.2f ($%.2f)" % (0.01 * m, 0.01*std))
-
-#print "config", config.budget
-
-
-    #for t in range(47, 48):
-    #for a in agents:
-        #print a,"'s added values is", av_value[a.id]
-
+    logging.warning("Average daily revenue (stddev): $%.2f ($%.2f)" %
+                    (0.01 * m, 0.01*std))
 
 
 if __name__ == "__main__":
