@@ -1,10 +1,12 @@
 from collections import defaultdict
 import numpy as np
+from sim import *
 
-def deferred_acceptance(students_pref, schools_pref, schools_capacity):
+MINORITY_CUTOFF = 2 / 3 * MEDIAN_INCOME
+
+def deferred_acceptance(students, schools, minority_reserve_da = False):
     # Get the number of students and schools
-    num_students = len(students_pref)
-    num_schools = len(schools_pref)
+    num_students = len(students)
     
     # Indicates students and schools that are free for matching
     avail_students = set(range(num_students))
@@ -12,6 +14,10 @@ def deferred_acceptance(students_pref, schools_pref, schools_capacity):
     # Stores the student-school matching
     matching_students = defaultdict(lambda: None)
     matching_schools = defaultdict(lambda: [])
+
+    # Get the preference lists of students and schools
+    students_pref = [np.argsort(-s.utility_per_college) for s in students]
+    schools_pref = [np.argsort(-s.value_per_student) for s in schools]
 
     # Run the deferred acceptance algorithm (while schools are available)
     while len(avail_students) > 0:
@@ -22,14 +28,32 @@ def deferred_acceptance(students_pref, schools_pref, schools_capacity):
 
         # Consider the proposals each school received and tentatively accept students
         for i in proposals.keys():
-            # Sort the pool of considered students by school preference
+            # Get the pool of students to consider
             considered = proposals[i] + matching_schools[i]
+            accepted = []
+
+            if (minority_reserve_da):
+                # Separately consider students in minority reserve first
+                minority = [j for j in considered if students[j].income < MINORITY_CUTOFF]
+
+                # sort by school preference
+                minority.sort(key=lambda x: schools_pref[i].index(x))
+
+                # Accept students to the reserve and remove from general consideration pool
+                reserve = min(len(minority), schools[i].reserve_prop * schools[i].spots)
+
+                accepted = minority[:reserve]
+
+                for j in accepted:
+                    considered.remove(j)
+
+            # Sort the pool of considered students by school preference
             considered.sort(key=lambda x: schools_pref[i].index(x))
 
             # Accept students up to the school's capacity
-            num_to_accept = min(len(considered), schools_capacity[i])
-            accepted = considered[:num_to_accept]
-            rejected = considered[num_to_accept:]
+            spots = min(len(considered), schools[i].spots - len(accepted))
+            accepted += considered[:spots]
+            rejected = considered[spots:]
 
             # Update matchings
             matching_schools[i] = accepted
@@ -45,20 +69,3 @@ def deferred_acceptance(students_pref, schools_pref, schools_capacity):
                 students_pref[i].remove(j)          
 
     return matching_students, matching_schools
-
-
-
-
-
-   
-
-
-
-                    
-
-        
-                
-                    
-
-            
-                
