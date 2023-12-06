@@ -1,10 +1,10 @@
+from collections import defaultdict
 import numpy as np
 import math
 from enum import Enum
-from da import *
 
 MEDIAN_INCOME = 61740
-
+MINORITY_CUTOFF = 2 / 3 * MEDIAN_INCOME
 
 class MATCH_TYPE(Enum):
     STANDARD_DA = 0,
@@ -102,19 +102,19 @@ def generate_adversity_score(
 
     scales = []  # Scale takes on some value between 0 and 1
     if (mode == ADVERSITY_FN.INVERSE):
-        scales = [2-2(1/(1+np.e**(-students.income/61740)))
+        scales = [2-2*(1/(1+np.e**(-students.income/61740)))
                   for student in students]
     elif (mode == ADVERSITY_FN.SIGMOID):
-        scales = [2-2(1/(1+np.e**(-students.income/61740)))
+        scales = [2-2*(1/(1+np.e**(-students.income/61740)))
                   for student in students]
     elif (mode == ADVERSITY_FN.EXPO):
         return [np.random.exponential(scale=MEDIAN_INCOME/student.income)
                 for student in students]
     elif (mode == ADVERSITY_FN.EXPO):
-        scales = [2-2(1/(1+np.e**(-students.income/61740)))
+        scales = [2-2*(1/(1+np.e**(-students.income/61740)))
                   for student in students]
     elif (mode == ADVERSITY_FN.LOGARITHMIC):
-        scales = [2-2(1/(1+np.e**(-students.income/61740)))
+        scales = [2-2*(1/(1+np.e**(-students.income/61740)))
                   for student in students]
     final_scales = []
     for (student, scale) in zip(students, scales):
@@ -139,3 +139,69 @@ def simulate_sat_scores(incomes):
     sat_scores = np.random.normal(loc=mean_scores, scale=math.sqrt(200))
 
     return sat_scores
+
+def deferred_acceptance(students, schools, minority_reserve_da = False):
+    # Get the number of students and schools
+    num_students = len(students)
+    
+    # Indicates students and schools that are free for matching
+    avail_students = set(range(num_students))
+
+    # Stores the student-school matching
+    matching_students = defaultdict(lambda: None)
+    matching_schools = defaultdict(lambda: [])
+
+    # Get the preference lists of students and schools
+    students_pref = [np.argsort(-s.utility_per_college) for s in students]
+    schools_pref = [np.argsort(-s.value_per_student) for s in schools]
+
+    # Run the deferred acceptance algorithm (while schools are available)
+    while len(avail_students) > 0:
+        # Get student proposals to their top-choice school
+        proposals = defaultdict(lambda: [])
+        for i in avail_students:
+            proposals[students_pref[i][0]].append(i)
+
+        # Consider the proposals each school received and tentatively accept students
+        for i in proposals.keys():
+            # Get the pool of students to consider
+            considered = proposals[i] + matching_schools[i]
+            accepted = []
+
+            if (minority_reserve_da):
+                # Separately consider students in minority reserve first
+                minority = [j for j in considered if students[j].income < MINORITY_CUTOFF]
+
+                # sort by school preference
+                minority.sort(key=lambda x: schools_pref[i].index(x))
+
+                # Accept students to the reserve and remove from general consideration pool
+                reserve = min(len(minority), schools[i].reserve_prop * schools[i].spots)
+
+                accepted = minority[:reserve]
+
+                for j in accepted:
+                    considered.remove(j)
+
+            # Sort the pool of considered students by school preference
+            considered.sort(key=lambda x: schools_pref[i].index(x))
+
+            # Accept students up to the school's capacity
+            spots = min(len(considered), schools[i].spots - len(accepted))
+            accepted += considered[:spots]
+            rejected = considered[spots:]
+
+            # Update matchings
+            matching_schools[i] = accepted
+            for j in accepted:
+                matching_students[j] = i
+
+            # Update students that still need matching
+            avail_students -= set(accepted)
+            avail_students |= set(rejected)
+
+            # Update the preference lists of rejected students
+            for j in rejected:
+                students_pref[i].remove(j)          
+
+    return matching_students, matching_schools
