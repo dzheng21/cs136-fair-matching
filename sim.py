@@ -1,6 +1,7 @@
 import numpy as np
 import math
 from enum import Enum
+from da import *
 
 MEDIAN_INCOME = 61740
 
@@ -78,7 +79,11 @@ def simulate(
             value_per_student += generate_adversity_score(
                 students, adversity_max_magnitude)
         college.set_preferences(value_per_student)
-    return
+
+    # Run the matching algorithm
+    matching_students, matching_schools = deferred_acceptance(students, colleges, is_modified_match)
+                                                              
+    return matching_students, matching_schools
 
 
 def generate_value_per_student(students):
