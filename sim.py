@@ -70,7 +70,7 @@ def simulate(
         utility_arr = np.array([np.random.normal(
             loc=college.reputation, scale=math.sqrt(2.0)) for college in colleges])
         students.append(Student(id, income, sat, utility_arr))
-
+    
     # Generate college rankings of students
     for college in colleges:
         value_per_student = generate_value_per_student(students)
@@ -151,15 +151,16 @@ def deferred_acceptance(students, schools, minority_reserve_da = False):
     matching_schools = defaultdict(lambda: [])
 
     # Get the preference lists of students and schools
-    students_pref = [list(np.argsort(s.utility_per_college)) for s in students][::-1]
-    schools_pref = [list(np.argsort(s.value_per_student)) for s in schools][::-1]
-
+    students_pref = [list(np.argsort(s.utility_per_college))[::-1] for s in students]
+    schools_pref = [list(np.argsort(s.value_per_student))[::-1] for s in schools]
+    
     # Run the deferred acceptance algorithm (while schools are available)
     while len(avail_students) > 0:
         # Get student proposals to their top-choice school
         proposals = defaultdict(lambda: [])
         for i in avail_students:
             proposals[students_pref[i][0]].append(i)
+
         # Consider the proposals each school received and tentatively accept students
         for i in proposals.keys():
             # Get the pool of students to consider
@@ -190,6 +191,7 @@ def deferred_acceptance(students, schools, minority_reserve_da = False):
             spots = min(len(considered), schools[i].spots - len(accepted))
             accepted += considered[:spots]
             rejected = considered[spots:]
+
             # Update matchings
             matching_schools[i] = accepted
             for j in accepted:
@@ -201,6 +203,8 @@ def deferred_acceptance(students, schools, minority_reserve_da = False):
 
             # Update the preference lists of rejected students
             for j in rejected:
-                students_pref[j].remove(i)      
-
+                students_pref[j].remove(i)
+                if len(students_pref[j]) == 0:
+                    avail_students -= set([j])
+                                          
     return matching_students, matching_schools
