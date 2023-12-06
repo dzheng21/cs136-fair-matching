@@ -78,7 +78,7 @@ def simulate(
             # Using Default Parameters
             value_per_student += generate_adversity_score(
                 students, adversity_max_magnitude)
-        college.set_preferences(value_per_student)
+        college.set_preferences(list(value_per_student))
 
     # Run the matching algorithm
     matching_students, matching_schools = deferred_acceptance(students, colleges, is_modified_match)
@@ -87,7 +87,7 @@ def simulate(
 
 
 def generate_value_per_student(students):
-    return [np.random.normal(loc=student.student_score, scale=math.sqrt(5.0)) for student in students]
+    return np.array([np.random.normal(loc=student.student_score, scale=math.sqrt(5.0)) for student in students])
 
 
 def generate_adversity_score(
@@ -101,6 +101,7 @@ def generate_adversity_score(
     # Given a mode and a cutoff, use data from students and adversity corr to calculate final adversity score scaling factor.
 
     scales = []  # Scale takes on some value between 0 and 1
+    # TODO: scales currently don't take on values between 0 and 1?
     if (mode == ADVERSITY_FN.INVERSE):
         scales = [(1/((2*student.income/MEDIAN_INCOME)+1))
                   for student in students]
@@ -111,17 +112,19 @@ def generate_adversity_score(
         return [np.random.exponential(scale=MEDIAN_INCOME/student.income)
                 for student in students]
     elif (mode == ADVERSITY_FN.EXPONENTIAL):
-        scales = [e ** (2*student.income/61740) for student in students]
+        scales = [math.e ** (2*student.income/61740) for student in students]
     elif (mode == ADVERSITY_FN.LOGARITHMIC):
         scales = [-math.log((2*student.income/MEDIAN_INCOME)+math.e)+2
                   for student in students]
+
     final_scales = []
     for (student, scale) in zip(students, scales):
         final_scale = scale
         if student.income >= income_cutoff:
             final_scale = 0
-        final_scales.append(scales)
-    return adversity_max_magnitude*final_scales
+        final_scales.append(final_scale)
+
+    return adversity_max_magnitude*np.array(final_scales)
 
 
 def simulate_incomes(numStudents, mean=11.0302, sigma=0.8179):
@@ -174,10 +177,9 @@ def deferred_acceptance(students, schools, minority_reserve_da = False):
                 
                 # sort by school preference
                 minority.sort(key=schools_pref[i].index)
-                
 
                 # Accept students to the reserve and remove from general consideration pool
-                reserve = min(len(minority), schools[i].reserve_prop * schools[i].spots)
+                reserve = min(len(minority), round(schools[i].reserve_prop * schools[i].spots))
 
                 accepted = minority[:reserve]
 
