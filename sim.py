@@ -101,30 +101,28 @@ def generate_adversity_score(
     # Given a mode and a cutoff, use data from students and adversity corr to calculate final adversity score scaling factor.
 
     scales = []  # Scale takes on some value between 0 and 1
-    # TODO: scales currently don't take on values between 0 and 1?
     if (mode == ADVERSITY_FN.INVERSE):
         scales = [(1/((2*student.income/MEDIAN_INCOME)+1))
+                  if student.income < income_cutoff else 0
                   for student in students]
     elif (mode == ADVERSITY_FN.SIGMOID):
         scales = [2-2*(1/(1+np.e**(-2*students.income/MEDIAN_INCOME)))
+                  if student.income < income_cutoff else 0
                   for student in students]
     elif (mode == ADVERSITY_FN.EXPO):
         return [np.random.exponential(scale=MEDIAN_INCOME/student.income)
+                if student.income < income_cutoff else 0
                 for student in students]
     elif (mode == ADVERSITY_FN.EXPONENTIAL):
-        scales = [math.e ** (2*student.income/61740) for student in students]
+        scales = [math.e ** (-student.income / MEDIAN_INCOME)
+                  if student.income < income_cutoff else 0
+                  for student in students]
     elif (mode == ADVERSITY_FN.LOGARITHMIC):
         scales = [-math.log((2*student.income/MEDIAN_INCOME)+math.e)+2
+                  if student.income < income_cutoff else 0
                   for student in students]
-
-    final_scales = []
-    for (student, scale) in zip(students, scales):
-        final_scale = scale
-        if student.income >= income_cutoff:
-            final_scale = 0
-        final_scales.append(final_scale)
-
-    return adversity_max_magnitude*np.array(final_scales)
+        
+    return adversity_max_magnitude*np.array(scales)
 
 
 def simulate_incomes(numStudents, mean=11.0302, sigma=0.8179):
